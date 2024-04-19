@@ -1,6 +1,6 @@
 import re
 
-from FakeRoleStorageHelper import FakeRoleStorageHelper
+from fakerole.fake_role_storage_helper import FakeRoleStorageHelper
 
 class NameSizeError(Exception):
     pass
@@ -11,14 +11,14 @@ class MemberSizeError(Exception):
 class IDSizeError(Exception):
     pass
 
-def __is_valid_members_set(self, members: set[str]) -> bool:
+def _is_valid_members_set(members: set[str]) -> bool:
     return (
         members
         and len(members) <= FakeRole.MEMBERS_MAX_SIZE
         and all(is_valid_member(member) for member in members)
     )
     
-def is_valid_member(self, member:str) -> bool:
+def is_valid_member(member:str) -> bool:
     """
     Checks if member is a valid Discord snowflake
     """
@@ -38,9 +38,12 @@ class FakeRole:
             raise IDSizeError("ID for FakeRole cannot be empty")
         self._id: str = id
 
-        self.name: str = name
+        if not name or len(name) > self.NAME_MAX_LENGTH:
+            raise NameSizeError(f"Name for FakeRole {self.id} {self.name} was incorrect, tried to \
+                                set it to {name}, must be <= {self.NAME_MAX_LENGTH}")
+        self._name: str = name
 
-        if not __is_valid_members_set(members):
+        if not _is_valid_members_set(members):
             raise MemberSizeError(f"Member size for FakeRole {self.id} {self.name} was incorrect, \
                                   was {len(members)}")
         self._members: set[str] = members
@@ -108,12 +111,15 @@ class FakeRole:
         Returns whether the FakeRole was successfully deleted
         """
         return storage_helper.delete_group(self.id)
+    
+    def __str__(self):
+        return self.id + ',' + self.name + ',' + str(self._members)
 
-def fetch_all_FakeRoles() -> set[FakeRole]:
-    return {
+def fetch_all_FakeRoles() -> list[FakeRole]:
+    return [
             FakeRole(id, name, members, create_in_storage=False)
             for id, name, members
             in storage_helper.get_all()
-            }
+    ]
 
 storage_helper = FakeRoleStorageHelper()
